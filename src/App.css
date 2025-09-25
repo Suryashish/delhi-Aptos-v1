@@ -40,3 +40,35 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Admin section styles */
+.admin-section {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: #f7f9fc;
+  border-radius: 8px;
+  border-left: 4px solid #4a6cfa;
+}
+
+.admin-card {
+  margin-bottom: 1.5rem;
+}
+
+.admin-card form {
+  margin-bottom: 1rem;
+}
+
+.admin-card label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.collect-fees {
+  margin-top: 1.5rem;
+}
+
+.collect-fees button {
+  background-color: #38a169;
+  color: white;
+}
