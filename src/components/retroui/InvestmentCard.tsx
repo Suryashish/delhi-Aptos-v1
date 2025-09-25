@@ -191,13 +191,13 @@ export const InvestmentCard = ({
           )}
 
           {/* View Details Button */}
-          <Button 
+          {/* <Button 
             variant="secondary" 
             size="sm"
             className="ml-auto"
           >
             View Details
-          </Button>
+          </Button> */}
         </div>
 
         {/* Profit/Loss Indicator */}
