@@ -411,7 +411,7 @@ function App() {
   // --- Render UI with RetroUI Components ---
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <Navbar title="🚀 Aptos Decentralized Invoicing" className="mb-8 shadow-xl">
+      <Navbar title="🚀 InvoChain" className="mb-8 shadow-xl">
         <WalletSelector />
       </Navbar>
 

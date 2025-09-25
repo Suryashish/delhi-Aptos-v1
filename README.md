@@ -1,4 +1,4 @@
-# 🚀 Aptos Decentralized Invoicing DApp
+# 🚀  InvoChain
 
 A revolutionary decentralized application built on the Aptos blockchain that enables SMEs (Small and Medium Enterprises) to tokenize their invoices and allow investors to purchase them for early liquidity while earning attractive returns.
 
