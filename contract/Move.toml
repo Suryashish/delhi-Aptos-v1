@@ -1,0 +1,15 @@
+[package]
+name = "invoice-rwa"
+version = "1.0.0"
+authors = []
+
+[addresses]
+decentralized_invoicing = "0x7920edec8c18ce2c86ab09adf605883e49025410349a5ae108b2f5e09a00c61e"
+[dev-addresses]
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-framework.git"
+rev = "testnet"
+subdir = "aptos-framework"
+
+[dev-dependencies]
