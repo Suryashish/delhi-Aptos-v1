@@ -7,6 +7,9 @@ import { WalletSelector } from "@aptos-labs/wallet-adapter-ant-design";
 import { Aptos, AptosConfig, Network, type MoveValue } from "@aptos-labs/ts-sdk";
 import { useState, useEffect } from 'react';
 
+// Import RetroUI components
+import { Navbar, Card, Button, Input, Badge, InvoiceCard, InvestmentCard } from './components/retroui';
+
 // --- Core App Configuration ---
 const MODULE_ADDRESS = "0x7920edec8c18ce2c86ab09adf605883e49025410349a5ae108b2f5e09a00c61e"; // <-- IMPORTANT: REPLACE WITH YOUR DEPLOYED MODULE ADDRESS
 const config = new AptosConfig({ network: Network.TESTNET });
@@ -48,6 +51,27 @@ function App() {
   const [stakeRatio, setStakeRatio] = useState<number>(40); // Default 40%
   const [poolContribution, setPoolContribution] = useState<number>(4); // Default 4%
   const [investorProfit, setInvestorProfit] = useState<number>(15); // Default 15%
+  
+  // Loading states for individual actions
+  const [loadingStates, setLoadingStates] = useState<{
+    createInvoice: boolean;
+    refreshData: boolean;
+    compensate: boolean;
+    collectFees: boolean;
+    updateRatio: boolean;
+    updateContribution: boolean;
+    [key: `list_${string}`]: boolean;
+    [key: `buy_${string}`]: boolean;
+    [key: `settle_${string}`]: boolean;
+    [key: `default_${string}`]: boolean;
+  }>({
+    createInvoice: false,
+    refreshData: false,
+    compensate: false,
+    collectFees: false,
+    updateRatio: false,
+    updateContribution: false,
+  });
 
   // --- Function to fetch all relevant data from the blockchain ---
   const fetchData = async () => {
@@ -370,134 +394,305 @@ function App() {
     }
   };
 
-  // --- Reusable Invoice Card Component ---
-  const InvoiceCard = ({ invoice }: { invoice: Invoice }) => (
-    <div key={invoice.invoice_id} className="card invoice-card">
-      <h3>Invoice #{invoice.invoice_id}</h3>
-      <p><strong>Status:</strong> <span className={`status status-${invoice.status}`}>{STATUS_MAP[invoice.status]}</span></p>
-      <p><strong>Amount:</strong> {(Number(invoice.invoice_amount) / 100000000).toFixed(2)} APT</p>
-      <p><strong>SME:</strong> {invoice.sme_address.slice(0, 6)}...{invoice.sme_address.slice(-4)}</p>
-      <p><strong>Due Date:</strong> {new Date(Number(invoice.due_date_secs) * 1000).toLocaleDateString()}</p>
-      {invoice.status >= 1 && <p><strong>List Price:</strong> {(Number(invoice.list_price) / 100000000).toFixed(2)} APT</p>}
-      {invoice.investor_address.vec.length > 0 && <p><strong>Investor:</strong> {invoice.investor_address.vec[0].slice(0, 6)}...{invoice.investor_address.vec[0].slice(-4)}</p>}
-
-      {/* --- Action Buttons --- */}
-      <div className="actions">
-        {/* SME can list a 'Created' invoice */}
-        {invoice.status === 0 && invoice.sme_address === account?.address.toString() && (
-          <button onClick={() => handleListInvoice(invoice.invoice_id)}>List Invoice</button>
-        )}
-        {/* Any user (except the SME) can buy a 'Listed' invoice */}
-        {invoice.status === 1 && invoice.sme_address !== account?.address.toString() && (
-          <button onClick={() => handleBuyInvoice(invoice)}>Buy Invoice</button>
-        )}
-        {/* Anyone can settle a 'Sold' invoice (e.g., the client) */}
-        {invoice.status === 2 && (
-          <button onClick={() => handleSettleInvoice(invoice)}>Settle Invoice</button>
-        )}
-        {/* The investor can handle default on a 'Sold' invoice after the due date */}
-        {invoice.status === 2 && invoice.investor_address.vec[0] === account?.address.toString() && new Date().getTime() > Number(invoice.due_date_secs) * 1000 && (
-          <button className="danger" onClick={() => handleDefaultInvoice(invoice.invoice_id)}>Handle Default</button>
-        )}
-      </div>
-    </div>
+  // --- Using RetroUI InvoiceCard Component ---
+  const renderInvoiceCard = (invoice: Invoice) => (
+    <InvoiceCard 
+      key={invoice.invoice_id}
+      invoice={invoice}
+      account={account}
+      onListInvoice={handleListInvoice}
+      onBuyInvoice={handleBuyInvoice}
+      onSettleInvoice={handleSettleInvoice}
+      onHandleDefault={handleDefaultInvoice}
+    />
   );
 
 
-  // --- Render UI ---
+  // --- Render UI with RetroUI Components ---
   return (
-    <>
-      <nav>
-        <h1>Aptos Decentralized Invoicing</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <Navbar title="🚀 Aptos Decentralized Invoicing" className="mb-8 shadow-xl">
         <WalletSelector />
-      </nav>
+      </Navbar>
 
       {!account ? (
-        <div className="center-prompt">Please connect your wallet to use the DApp.</div>
+        <div className="flex items-center justify-center min-h-[70vh]">
+          <Card variant="raised" className="p-10 max-w-lg text-center shadow-2xl bg-gradient-to-br from-white to-gray-50">
+            <div className="text-8xl mb-6 animate-bounce">👋</div>
+            <h2 className="text-2xl font-bold mb-4 text-gray-800">Welcome to Decentralized Invoicing</h2>
+            <p className="text-gray-600 mb-8 leading-relaxed">
+              Connect your wallet to start trading invoices, make investments, and earn returns in the decentralized economy.
+            </p>
+            <div className="flex items-center justify-center gap-2 text-yellow-600">
+              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+              <p className="text-sm font-medium">Secure • Transparent • Profitable</p>
+            </div>
+          </Card>
+        </div>
       ) : (
-        <main className="container">
-          <div className="card form-card">
-            <h2>Create New Invoice (For SMEs)</h2>
-            <form onSubmit={handleCreateInvoice}>
-              <input name="amount" type="number" placeholder="Invoice Amount (APT)" step="0.01" required />
-              <input name="dueDate" type="date" required />
-              <input name="client" type="text" placeholder="Client Name" required />
-              <input name="industry" type="text" placeholder="Industry" required />
-              <button type="submit">Create Invoice</button>
-            </form>
-          </div>
+        <main className="container mx-auto px-6 pb-16 max-w-7xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+            <Card 
+              title="📝 Create New Invoice (For SMEs)" 
+              variant="raised" 
+              className="h-full shadow-xl bg-gradient-to-br from-white to-blue-50"
+            >
+              <form onSubmit={handleCreateInvoice} className="space-y-5">
+                <Input 
+                  name="amount" 
+                  type="number" 
+                  placeholder="Invoice Amount (APT)" 
+                  step="0.01" 
+                  fullWidth 
+                  required
+                  label="Invoice Amount"
+                />
+                <Input 
+                  name="dueDate" 
+                  type="date" 
+                  fullWidth 
+                  required
+                  label="Due Date"
+                />
+                <Input 
+                  name="client" 
+                  type="text" 
+                  placeholder="e.g., ABC Corporation" 
+                  fullWidth 
+                  required
+                  label="Client Name"
+                />
+                <Input 
+                  name="industry" 
+                  type="text" 
+                  placeholder="e.g., Technology, Healthcare" 
+                  fullWidth 
+                  required
+                  label="Industry"
+                />
+                <Button 
+                  type="submit" 
+                  fullWidth 
+                  loading={isLoading}
+                  className="mt-6"
+                >
+                  Create Invoice ✨
+                </Button>
+              </form>
+            </Card>
 
-          <div className="card stats-card">
-            <h2>Platform Stats</h2>
-            <p>Community Pool Balance: <strong>{(Number(poolBalance) / 100000000).toFixed(4)} APT</strong></p>
-            <p>Collected Fees: <strong>{(Number(collectedFees) / 100000000).toFixed(4)} APT</strong></p>
-            <p>SME Stake Requirement: <strong>{stakeRatio}%</strong></p>
-            <p>Pool Contribution: <strong>{poolContribution}%</strong></p>
-            <p>Investor Profit: <strong>{investorProfit}%</strong></p>
-            <button onClick={fetchData} disabled={isLoading}>
-              {isLoading ? "Refreshing..." : "Refresh Data"}
-            </button>
+            <Card 
+              title="📊 Platform Statistics" 
+              variant="raised" 
+              className="h-full shadow-xl bg-gradient-to-br from-white to-yellow-50"
+              loading={isLoading}
+            >
+              {!isLoading && (
+                <>
+                  <div className="space-y-4 mb-8">
+                    <div className="flex justify-between items-center p-3 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-lg border border-yellow-200">
+                      <span className="text-gray-700 font-medium flex items-center gap-2">
+                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                        Community Pool Balance
+                      </span>
+                      <span className="font-bold text-lg text-yellow-700">
+                        {(Number(poolBalance) / 100000000).toFixed(4)} APT
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                      <span className="text-gray-700 font-medium flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        Collected Fees
+                      </span>
+                      <span className="font-bold text-lg text-green-700">
+                        {(Number(collectedFees) / 100000000).toFixed(4)} APT
+                      </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-3 mt-6">
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-800">{stakeRatio}%</div>
+                        <div className="text-xs text-gray-600 uppercase tracking-wide">SME Stake</div>
+                      </div>
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-800">{poolContribution}%</div>
+                        <div className="text-xs text-gray-600 uppercase tracking-wide">Pool Fee</div>
+                      </div>
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-800">{investorProfit}%</div>
+                        <div className="text-xs text-gray-600 uppercase tracking-wide">Profit</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={fetchData} 
+                    disabled={isLoading}
+                    loading={isLoading}
+                    fullWidth
+                    variant="secondary"
+                    className="shadow-lg"
+                  >
+                    {isLoading ? "Refreshing..." : "🔄 Refresh Data"}
+                  </Button>
+                </>
+              )}
+            </Card>
           </div>
 
           {isAdmin && (
-            <div className="admin-section">
-              <h2>Admin Dashboard</h2>
+            <div className="mb-10">
+              <h2 className="text-3xl font-bold mb-6 text-gray-800 flex items-center gap-3">
+                <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                🛠️ Admin Dashboard
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <Card 
+                  title="💰 Compensate Investor" 
+                  variant="raised"
+                  className="shadow-xl bg-gradient-to-br from-white to-red-50"
+                >
+                  <form onSubmit={handleCompensateFromPool} className="space-y-5">
+                    <Input 
+                      name="address" 
+                      type="text" 
+                      placeholder="0x..." 
+                      fullWidth 
+                      required
+                      label="Investor Address"
+                    />
+                    <Input 
+                      name="amount" 
+                      type="number" 
+                      placeholder="0.00" 
+                      step="0.01" 
+                      fullWidth 
+                      required
+                      label="Compensation Amount (APT)"
+                    />
+                    <Button 
+                      type="submit" 
+                      fullWidth 
+                      variant="danger"
+                      className="shadow-lg"
+                    >
+                      💸 Compensate
+                    </Button>
+                  </form>
+                </Card>
 
-              <div className="card admin-card">
-                <h3>Compensate Investor from Pool</h3>
-                <form onSubmit={handleCompensateFromPool}>
-                  <input name="address" type="text" placeholder="Investor Address" required />
-                  <input name="amount" type="number" placeholder="Amount (APT)" step="0.01" required />
-                  <button type="submit">Compensate</button>
-                </form>
-              </div>
+                <Card 
+                  title="⚙️ Platform Settings" 
+                  variant="raised"
+                  className="shadow-xl bg-gradient-to-br from-white to-purple-50"
+                >
+                  <form onSubmit={handleUpdateStakeRatio} className="space-y-4 mb-6">
+                    <Input 
+                      name="ratio" 
+                      type="number" 
+                      placeholder="40" 
+                      step="0.01" 
+                      fullWidth 
+                      required
+                      label="SME Stake Ratio (%)"
+                    />
+                    <Button type="submit" fullWidth size="sm">Update Ratio</Button>
+                  </form>
 
-              <div className="card admin-card">
-                <h3>Platform Settings</h3>
-                <form onSubmit={handleUpdateStakeRatio}>
-                  <label>Update SME Stake Ratio (%)</label>
-                  <input name="ratio" type="number" placeholder="New Ratio (%)" step="0.01" required />
-                  <button type="submit">Update Ratio</button>
-                </form>
+                  <form onSubmit={handleUpdatePoolContribution} className="space-y-4 mb-6">
+                    <Input 
+                      name="contribution" 
+                      type="number" 
+                      placeholder="4" 
+                      step="0.01" 
+                      fullWidth 
+                      required
+                      label="Pool Contribution (%)"
+                    />
+                    <Button type="submit" fullWidth size="sm">Update Contribution</Button>
+                  </form>
 
-                <form onSubmit={handleUpdatePoolContribution}>
-                  <label>Update Pool Contribution (%)</label>
-                  <input name="contribution" type="number" placeholder="New Contribution (%)" step="0.01" required />
-                  <button type="submit">Update Contribution</button>
-                </form>
-
-                <div className="collect-fees">
-                  <button onClick={handleCollectFees}>Collect Platform Fees</button>
-                </div>
+                  <div className="pt-4 border-t border-gray-200">
+                    <Button 
+                      onClick={handleCollectFees} 
+                      fullWidth 
+                      variant="primary"
+                      className="shadow-lg"
+                    >
+                      💳 Collect Platform Fees
+                    </Button>
+                  </div>
+                </Card>
               </div>
             </div>
           )}
 
-          {/* --- NEW: Investor's Dashboard --- */}
+          {/* My Investments Section with Special Cards */}
           {myInvestments.length > 0 && (
-             <div className="invoices-section">
-                <h2>My Investments</h2>
-                <div className="invoice-list">
-                  {myInvestments.map((invoice) => (
-                    <InvoiceCard key={invoice.invoice_id} invoice={invoice} />
-                  ))}
-                </div>
-             </div>
+            <div className="mb-10">
+              <h2 className="text-3xl font-bold mb-6 text-gray-800 flex items-center gap-3">
+                <div className="w-4 h-4 bg-yellow-500 rounded-full animate-pulse"></div>
+                💼 My Investments
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {myInvestments.map((invoice) => (
+                  <InvestmentCard 
+                    key={invoice.invoice_id}
+                    invoice={invoice}
+                    account={account}
+                    onListInvoice={handleListInvoice}
+                    onBuyInvoice={handleBuyInvoice}
+                    onSettleInvoice={handleSettleInvoice}
+                    onHandleDefault={handleDefaultInvoice}
+                    loading={isLoading}
+                  />
+                ))}
+              </div>
+            </div>
           )}
 
-          <div className="invoices-section">
-            <h2>Invoice Marketplace</h2>
-            {isLoading && <p>Loading invoices...</p>}
-            {!isLoading && invoices.length === 0 && <p>No invoices found.</p>}
-            <div className="invoice-list">
-              {invoices.map((invoice) => (
-                 <InvoiceCard key={invoice.invoice_id} invoice={invoice} />
-              ))}
-            </div>
+          <div>
+            <h2 className="text-3xl font-bold mb-6 text-gray-800 flex items-center gap-3">
+              <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse"></div>
+              🏪 Invoice Marketplace
+            </h2>
+            
+            {isLoading && (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Card key={i} variant="raised" loading={true} />
+                ))}
+              </div>
+            )}
+            
+            {!isLoading && invoices.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="text-6xl mb-4">📄</div>
+                <p className="text-gray-500 text-lg">No invoices found in the marketplace.</p>
+                <p className="text-gray-400 text-sm mt-2">Be the first to create an invoice!</p>
+              </div>
+            )}
+            
+            {!isLoading && invoices.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {invoices.map((invoice) => (
+                  <InvoiceCard 
+                    key={invoice.invoice_id}
+                    invoice={invoice}
+                    account={account}
+                    onListInvoice={handleListInvoice}
+                    onBuyInvoice={handleBuyInvoice}
+                    onSettleInvoice={handleSettleInvoice}
+                    onHandleDefault={handleDefaultInvoice}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </main>
       )}
-    </>
+    </div>
   );
 }
 

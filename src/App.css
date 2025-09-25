@@ -1,74 +1,152 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap');
+
+/* RetroUI-inspired styles with Yellow Accent */
+body {
+  font-family: 'Space Mono', monospace;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  color: #333;
+  margin: 0;
+  padding: 0;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'VT323', monospace;
+  letter-spacing: 0.5px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Custom button focus styles with yellow accents */
+button:focus, 
+input:focus {
+  outline: 3px dotted #f1c40f;
+  outline-offset: 2px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* Enhanced status badge colors */
+.status-0 { 
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e0 100%); 
+  color: #4a5568; 
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.status-1 { 
+  background: linear-gradient(135deg, #bee3f8 0%, #90cdf4 100%); 
+  color: #2c5282;
+  box-shadow: 0 2px 4px rgba(45,82,130,0.2);
+}
+.status-2 { 
+  background: linear-gradient(135deg, #fefcbf 0%, #f6e05e 100%); 
+  color: #975a16;
+  box-shadow: 0 2px 4px rgba(151,90,22,0.2);
+}
+.status-3 { 
+  background: linear-gradient(135deg, #c6f6d5 0%, #9ae6b4 100%); 
+  color: #276749;
+  box-shadow: 0 2px 4px rgba(39,103,73,0.2);
+}
+.status-4 { 
+  background: linear-gradient(135deg, #fed7d7 0%, #fc8181 100%); 
+  color: #9b2c2c;
+  box-shadow: 0 2px 4px rgba(155,44,44,0.2);
 }
 
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-
-/* Admin section styles */
+/* Admin section styles with yellow accents */
 .admin-section {
   margin-top: 2rem;
-  padding: 1.5rem;
-  background-color: #f7f9fc;
-  border-radius: 8px;
-  border-left: 4px solid #4a6cfa;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f7f9fc 0%, #edf2f7 100%);
+  border-radius: 12px;
+  border-left: 6px solid #f1c40f;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
 }
 
-.admin-card {
-  margin-bottom: 1.5rem;
+/* Override ant design wallet selector styles to match RetroUI */
+.ant-btn {
+  font-family: 'Space Mono', monospace !important;
+  border-radius: 8px !important;
+  border-width: 2px !important;
+  transition: all 0.3s ease !important;
 }
 
-.admin-card form {
-  margin-bottom: 1rem;
+.ant-btn-primary {
+  background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%) !important;
+  border-color: #e67e22 !important;
+  color: #000 !important;
+  font-weight: 600 !important;
 }
 
-.admin-card label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
+.ant-btn-primary:hover {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%) !important;
+  border-color: #d35400 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(241,196,15,0.3) !important;
 }
 
-.collect-fees {
-  margin-top: 1.5rem;
+/* Enhanced animations */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
 }
 
-.collect-fees button {
-  background-color: #38a169;
-  color: white;
+@keyframes glow {
+  0% { box-shadow: 0 0 5px rgba(241,196,15,0.2); }
+  50% { box-shadow: 0 0 20px rgba(241,196,15,0.4), 0 0 30px rgba(241,196,15,0.2); }
+  100% { box-shadow: 0 0 5px rgba(241,196,15,0.2); }
+}
+
+.hover-animate:hover {
+  animation: pulse 0.5s ease-in-out;
+}
+
+.glow-effect {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Custom scrollbar with yellow accents */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: linear-gradient(135deg, #f1f1f1 0%, #e8e8e8 100%);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+  border-radius: 10px;
+  border: 2px solid #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+}
+
+/* Card hover effects */
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+/* Interactive elements */
+.interactive-element {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.interactive-element:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+/* Gradient backgrounds for special sections */
+.gradient-yellow {
+  background: linear-gradient(135deg, #fff9c4 0%, #fff59d 50%, #ffeb3b 100%);
+}
+
+.gradient-blue {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 50%, #2196f3 100%);
+}
+
+.gradient-green {
+  background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 50%, #4caf50 100%);
 }
