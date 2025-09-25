@@ -39,6 +39,8 @@ const STATUS_MAP: { [key: number]: string } = {
 function App() {
   const { account, signAndSubmitTransaction } = useWallet();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  // --- NEW: State for investor's specific invoices ---
+  const [myInvestments, setMyInvestments] = useState<Invoice[]>([]);
   const [poolBalance, setPoolBalance] = useState<string>("0");
   const [collectedFees, setCollectedFees] = useState<string>("0");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -73,6 +75,13 @@ function App() {
       }
       setInvoices(fetchedInvoices.reverse()); // Show newest first
 
+      // --- NEW: Filter for invoices the current user has invested in ---
+      const userInvestments = fetchedInvoices.filter(
+        inv => inv.investor_address.vec.length > 0 && inv.investor_address.vec[0] === account.address.toString()
+      );
+      setMyInvestments(userInvestments);
+
+
       // Fetch pool balance
       const balancePayload = {
         function: `${MODULE_ADDRESS}::decentralized_invoicing::get_pool_balance`,
@@ -80,7 +89,7 @@ function App() {
       };
       const poolResult = await aptos.view<MoveValue[]>({ payload: balancePayload });
       setPoolBalance(poolResult[0] as string);
-      
+
       // Fetch collected fees
       const feesPayload = {
         function: `${MODULE_ADDRESS}::decentralized_invoicing::get_collected_fees`,
@@ -88,7 +97,7 @@ function App() {
       };
       const feesResult = await aptos.view<MoveValue[]>({ payload: feesPayload });
       setCollectedFees(feesResult[0] as string);
-      
+
       // Check if the current user is the admin (module publisher)
       setIsAdmin(account?.address.toString() === MODULE_ADDRESS);
 
@@ -111,8 +120,8 @@ function App() {
       function: `${MODULE_ADDRESS}::decentralized_invoicing::get_invoice`,
       functionArguments: [id.toString()],
     };
-    const result = await aptos.view<Invoice>({ payload });
-    return result[0];
+    const result = await aptos.view<MoveValue[]>({ payload });
+    return result[0] as Invoice;
   };
 
   // --- Transaction: Create an Invoice ---
@@ -134,7 +143,7 @@ function App() {
         function: `${MODULE_ADDRESS}::decentralized_invoicing::create_invoice`,
         functionArguments: [
           parseInt(amount) * 100000000, // Convert APT to Octas
-          dueDateSecs,
+          dueDateSecs.toString(),
           client,
           industry,
         ],
@@ -165,7 +174,7 @@ function App() {
     const transaction: InputTransactionData = {
       data: {
         function: `${MODULE_ADDRESS}::decentralized_invoicing::list_invoice`,
-        functionArguments: [invoiceId, priceInOctas],
+        functionArguments: [invoiceId, priceInOctas.toString()],
       },
     };
 
@@ -191,8 +200,6 @@ function App() {
           invoice.invoice_id,
           invoice.list_price // Assuming the modified contract takes amount
         ],
-        // Required for functions that use `Coin<AptosCoin>`
-        typeArguments: ["0x1::aptos_coin::AptosCoin"],
       },
     };
 
@@ -218,7 +225,6 @@ function App() {
           invoice.invoice_id,
           invoice.invoice_amount // Assuming the modified contract takes amount
         ],
-        typeArguments: ["0x1::aptos_coin::AptosCoin"],
       },
     };
 
@@ -254,27 +260,27 @@ function App() {
       alert("Error handling default. See console for details.");
     }
   };
-  
+
   // --- Admin Transaction: Compensate from Pool ---
   const handleCompensateFromPool = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!account || !isAdmin) return;
-    
+
     const formData = new FormData(e.currentTarget);
     const address = formData.get("address") as string;
     const amount = formData.get("amount") as string;
     const amountInOctas = Number(amount) * 100000000;
-    
+
     const transaction: InputTransactionData = {
       data: {
         function: `${MODULE_ADDRESS}::decentralized_invoicing::compensate_from_pool`,
         functionArguments: [
           address,
-          amountInOctas,
+          amountInOctas.toString(),
         ],
       },
     };
-    
+
     try {
       const response = await signAndSubmitTransaction(transaction);
       await aptos.waitForTransaction({ transactionHash: response.hash });
@@ -285,18 +291,18 @@ function App() {
       alert("Error compensating investor. See console for details.");
     }
   };
-  
+
   // --- Admin Transaction: Collect Fees ---
   const handleCollectFees = async () => {
     if (!account || !isAdmin) return;
-    
+
     const transaction: InputTransactionData = {
       data: {
         function: `${MODULE_ADDRESS}::decentralized_invoicing::collect_fees`,
         functionArguments: [],
       },
     };
-    
+
     try {
       const response = await signAndSubmitTransaction(transaction);
       await aptos.waitForTransaction({ transactionHash: response.hash });
@@ -307,24 +313,24 @@ function App() {
       alert("Error collecting fees. See console for details.");
     }
   };
-  
+
   // --- Admin Transaction: Update Stake Ratio ---
   const handleUpdateStakeRatio = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!account || !isAdmin) return;
-    
+
     const formData = new FormData(e.currentTarget);
     const ratio = formData.get("ratio") as string;
     // Convert percentage to basis points (e.g. 40% -> 4000)
     const ratioBps = Number(ratio) * 100;
-    
+
     const transaction: InputTransactionData = {
       data: {
         function: `${MODULE_ADDRESS}::decentralized_invoicing::update_stake_ratio`,
-        functionArguments: [ratioBps],
+        functionArguments: [ratioBps.toString()],
       },
     };
-    
+
     try {
       const response = await signAndSubmitTransaction(transaction);
       await aptos.waitForTransaction({ transactionHash: response.hash });
@@ -335,24 +341,24 @@ function App() {
       alert("Error updating stake ratio. See console for details.");
     }
   };
-  
+
   // --- Admin Transaction: Update Pool Contribution ---
   const handleUpdatePoolContribution = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!account || !isAdmin) return;
-    
+
     const formData = new FormData(e.currentTarget);
     const contribution = formData.get("contribution") as string;
     // Convert percentage to basis points (e.g. 4% -> 400)
     const contributionBps = Number(contribution) * 100;
-    
+
     const transaction: InputTransactionData = {
       data: {
         function: `${MODULE_ADDRESS}::decentralized_invoicing::update_pool_contribution`,
-        functionArguments: [contributionBps],
+        functionArguments: [contributionBps.toString()],
       },
     };
-    
+
     try {
       const response = await signAndSubmitTransaction(transaction);
       await aptos.waitForTransaction({ transactionHash: response.hash });
@@ -363,6 +369,40 @@ function App() {
       alert("Error updating pool contribution. See console for details.");
     }
   };
+
+  // --- Reusable Invoice Card Component ---
+  const InvoiceCard = ({ invoice }: { invoice: Invoice }) => (
+    <div key={invoice.invoice_id} className="card invoice-card">
+      <h3>Invoice #{invoice.invoice_id}</h3>
+      <p><strong>Status:</strong> <span className={`status status-${invoice.status}`}>{STATUS_MAP[invoice.status]}</span></p>
+      <p><strong>Amount:</strong> {(Number(invoice.invoice_amount) / 100000000).toFixed(2)} APT</p>
+      <p><strong>SME:</strong> {invoice.sme_address.slice(0, 6)}...{invoice.sme_address.slice(-4)}</p>
+      <p><strong>Due Date:</strong> {new Date(Number(invoice.due_date_secs) * 1000).toLocaleDateString()}</p>
+      {invoice.status >= 1 && <p><strong>List Price:</strong> {(Number(invoice.list_price) / 100000000).toFixed(2)} APT</p>}
+      {invoice.investor_address.vec.length > 0 && <p><strong>Investor:</strong> {invoice.investor_address.vec[0].slice(0, 6)}...{invoice.investor_address.vec[0].slice(-4)}</p>}
+
+      {/* --- Action Buttons --- */}
+      <div className="actions">
+        {/* SME can list a 'Created' invoice */}
+        {invoice.status === 0 && invoice.sme_address === account?.address.toString() && (
+          <button onClick={() => handleListInvoice(invoice.invoice_id)}>List Invoice</button>
+        )}
+        {/* Any user (except the SME) can buy a 'Listed' invoice */}
+        {invoice.status === 1 && invoice.sme_address !== account?.address.toString() && (
+          <button onClick={() => handleBuyInvoice(invoice)}>Buy Invoice</button>
+        )}
+        {/* Anyone can settle a 'Sold' invoice (e.g., the client) */}
+        {invoice.status === 2 && (
+          <button onClick={() => handleSettleInvoice(invoice)}>Settle Invoice</button>
+        )}
+        {/* The investor can handle default on a 'Sold' invoice after the due date */}
+        {invoice.status === 2 && invoice.investor_address.vec[0] === account?.address.toString() && new Date().getTime() > Number(invoice.due_date_secs) * 1000 && (
+          <button className="danger" onClick={() => handleDefaultInvoice(invoice.invoice_id)}>Handle Default</button>
+        )}
+      </div>
+    </div>
+  );
+
 
   // --- Render UI ---
   return (
@@ -377,7 +417,7 @@ function App() {
       ) : (
         <main className="container">
           <div className="card form-card">
-            <h2>Create New Invoice</h2>
+            <h2>Create New Invoice (For SMEs)</h2>
             <form onSubmit={handleCreateInvoice}>
               <input name="amount" type="number" placeholder="Invoice Amount (APT)" step="0.01" required />
               <input name="dueDate" type="date" required />
@@ -402,7 +442,7 @@ function App() {
           {isAdmin && (
             <div className="admin-section">
               <h2>Admin Dashboard</h2>
-              
+
               <div className="card admin-card">
                 <h3>Compensate Investor from Pool</h3>
                 <form onSubmit={handleCompensateFromPool}>
@@ -411,7 +451,7 @@ function App() {
                   <button type="submit">Compensate</button>
                 </form>
               </div>
-              
+
               <div className="card admin-card">
                 <h3>Platform Settings</h3>
                 <form onSubmit={handleUpdateStakeRatio}>
@@ -419,13 +459,13 @@ function App() {
                   <input name="ratio" type="number" placeholder="New Ratio (%)" step="0.01" required />
                   <button type="submit">Update Ratio</button>
                 </form>
-                
+
                 <form onSubmit={handleUpdatePoolContribution}>
                   <label>Update Pool Contribution (%)</label>
                   <input name="contribution" type="number" placeholder="New Contribution (%)" step="0.01" required />
                   <button type="submit">Update Contribution</button>
                 </form>
-                
+
                 <div className="collect-fees">
                   <button onClick={handleCollectFees}>Collect Platform Fees</button>
                 </div>
@@ -433,37 +473,25 @@ function App() {
             </div>
           )}
 
+          {/* --- NEW: Investor's Dashboard --- */}
+          {myInvestments.length > 0 && (
+             <div className="invoices-section">
+                <h2>My Investments</h2>
+                <div className="invoice-list">
+                  {myInvestments.map((invoice) => (
+                    <InvoiceCard key={invoice.invoice_id} invoice={invoice} />
+                  ))}
+                </div>
+             </div>
+          )}
+
           <div className="invoices-section">
-            <h2>Invoices</h2>
+            <h2>Invoice Marketplace</h2>
             {isLoading && <p>Loading invoices...</p>}
             {!isLoading && invoices.length === 0 && <p>No invoices found.</p>}
             <div className="invoice-list">
               {invoices.map((invoice) => (
-                <div key={invoice.invoice_id} className="card invoice-card">
-                  <h3>Invoice #{invoice.invoice_id}</h3>
-                  <p><strong>Status:</strong> <span className={`status status-${invoice.status}`}>{STATUS_MAP[invoice.status]}</span></p>
-                  <p><strong>Amount:</strong> {(Number(invoice.invoice_amount) / 100000000).toFixed(2)} APT</p>
-                  <p><strong>SME:</strong> {invoice.sme_address.slice(0, 6)}...{invoice.sme_address.slice(-4)}</p>
-                  <p><strong>Due Date:</strong> {new Date(Number(invoice.due_date_secs) * 1000).toLocaleDateString()}</p>
-                  {invoice.status === 1 && <p><strong>List Price:</strong> {(Number(invoice.list_price) / 100000000).toFixed(2)} APT</p>}
-                  {invoice.investor_address.vec.length > 0 && <p><strong>Investor:</strong> {invoice.investor_address.vec[0].slice(0, 6)}...{invoice.investor_address.vec[0].slice(-4)}</p>}
-                  
-                  {/* --- Action Buttons --- */}
-                  <div className="actions">
-                    {invoice.status === 0 && invoice.sme_address === account.address && (
-                      <button onClick={() => handleListInvoice(invoice.invoice_id)}>List Invoice</button>
-                    )}
-                    {invoice.status === 1 && invoice.sme_address !== account.address && (
-                       <button onClick={() => handleBuyInvoice(invoice)}>Buy Invoice</button>
-                    )}
-                     {invoice.status === 2 && (
-                       <button onClick={() => handleSettleInvoice(invoice)}>Settle Invoice</button>
-                    )}
-                    {invoice.status === 2 && invoice.investor_address.vec[0] === account.address && new Date().getTime() > Number(invoice.due_date_secs) * 1000 && (
-                       <button className="danger" onClick={() => handleDefaultInvoice(invoice.invoice_id)}>Handle Default</button>
-                    )}
-                  </div>
-                </div>
+                 <InvoiceCard key={invoice.invoice_id} invoice={invoice} />
               ))}
             </div>
           </div>
